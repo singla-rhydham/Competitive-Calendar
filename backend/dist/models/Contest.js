@@ -34,39 +34,37 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const UserSchema = new mongoose_1.Schema({
-    googleId: {
+const ContestSchema = new mongoose_1.Schema({
+    id: {
         type: String,
         required: true,
         unique: true
     },
-    email: {
+    platform: {
         type: String,
         required: true,
-        unique: true
+        enum: ['Codeforces', 'LeetCode', 'AtCoder', 'CodeChef']
     },
     name: {
         type: String,
         required: true
     },
-    picture: {
-        type: String
+    startTime: {
+        type: Date,
+        required: true
     },
-    accessToken: {
-        type: String
+    endTime: {
+        type: Date,
+        required: true
     },
-    refreshToken: {
-        type: String
-    },
-    subscribed: {
-        type: Boolean,
-        default: false
-    },
-    reminderPreference: {
+    url: {
         type: String,
-        default: '1h'
+        required: true
     }
 }, {
     timestamps: true
 });
-exports.default = mongoose_1.default.model('User', UserSchema);
+// Index for efficient querying
+ContestSchema.index({ startTime: 1 });
+ContestSchema.index({ platform: 1 });
+exports.default = mongoose_1.default.model('Contest', ContestSchema);

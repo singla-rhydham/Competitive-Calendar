@@ -7,6 +7,8 @@ export interface IUser extends Document {
   picture?: string;
   accessToken?: string;
   refreshToken?: string;
+  subscribed: boolean;
+  reminderPreference: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +36,14 @@ const UserSchema: Schema = new Schema({
   },
   refreshToken: {
     type: String
+  },
+  subscribed: {
+    type: Boolean,
+    default: false
+  },
+  reminderPreference: {
+    type: String,
+    default: '1h'
   }
 }, {
   timestamps: true
