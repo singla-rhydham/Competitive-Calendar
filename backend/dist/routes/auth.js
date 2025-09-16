@@ -7,9 +7,20 @@ const express_1 = __importDefault(require("express"));
 const passport_1 = __importDefault(require("passport"));
 const router = express_1.default.Router();
 // Google OAuth login route
-router.get('/google', passport_1.default.authenticate('google', {
-    scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar']
-}));
+router.get(
+    '/google',
+    passport.authenticate('google', {
+      scope: [
+        'profile',
+        'email',
+        'https://www.googleapis.com/auth/calendar',
+        'https://www.googleapis.com/auth/calendar.events'
+      ],
+      accessType: 'offline',
+      prompt: 'consent'
+    })
+  );
+  
 // Google OAuth callback route
 router.get('/google/callback', passport_1.default.authenticate('google', { failureRedirect: '/login' }), (req, res) => {
     // Successful authentication, redirect to frontend dashboard
