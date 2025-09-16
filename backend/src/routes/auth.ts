@@ -6,7 +6,9 @@ const router = express.Router();
 // Google OAuth login route
 router.get('/google', 
   passport.authenticate('google', { 
-    scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar'] 
+    scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events'],
+    accessType: 'offline',
+    prompt: 'consent'
   })
 );
 

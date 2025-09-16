@@ -100,86 +100,78 @@ class ContestUpdater {
   }
 
   private async fetchLeetCodeContests(): Promise<ContestData[]> {
-    try {
-      // Fetch the HTML of the contest page
-      const { data: html } = await axios.get('https://leetcode.com/contest/', {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-      });
-      const $ = cheerio.load(html);
-  
-      const contests: ContestData[] = [];
-  
-      // Look for upcoming contests in the HTML
-      // LeetCode contest cards are typically in divs with specific classes
-      $('div[class*="contest-card"], div[class*="contest-item"]').each((i, el) => {
-        const $el = $(el);
-        const name = $el.find('div[class*="title"], div[class*="name"], h3, h4').first().text().trim();
-        const link = $el.find('a').first().attr('href') || '';
-        const timeText = $el.find('div[class*="time"], div[class*="date"]').text().trim();
-  
-        if (name && link && !name.toLowerCase().includes('past')) {
-          const slug = link.replace('/contest/', '').replace('/', '');
-          const contestUrl = link.startsWith('http') ? link : `https://leetcode.com${link}`;
-  
-          // Try to get exact contest info from API
-          this.getLeetCodeContestInfo(slug).then(contestInfo => {
-            if (contestInfo) {
-              contests.push({
-                id: `leetcode_${slug}`,
-                platform: 'LeetCode',
-                name: contestInfo.title || name,
-                startTime: new Date(contestInfo.start_time * 1000),
-                endTime: new Date((contestInfo.start_time + contestInfo.duration) * 1000),
-                url: contestUrl,
-              });
-            }
-          }).catch(() => {
-            // Fallback to basic info if API fails
-            contests.push({
-              id: `leetcode_${slug}`,
-              platform: 'LeetCode',
-              name,
-              startTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to tomorrow
-              endTime: new Date(Date.now() + 25 * 60 * 60 * 1000), // Default to tomorrow + 1 hour
-              url: contestUrl,
-            });
-          });
-        }
-      });
+    // Try primary (kontests.net) with retry+timeout, then fallback to clist.by with retry+timeout
+    const maxAttempts = 2;
+    const timeoutMs = 5000;
 
-      // Also try to find contests in script tags (JSON data)
-      $('script').each((i, script) => {
-        const scriptContent = $(script).html();
-        if (scriptContent && scriptContent.includes('upcomingContests')) {
-          try {
-            const jsonMatch = scriptContent.match(/upcomingContests[^=]*=\s*(\[.*?\]);/s);
-            if (jsonMatch) {
-              const contestsData = JSON.parse(jsonMatch[1]);
-              contestsData.forEach((contest: any) => {
-                if (contest.startTime && contest.duration) {
-                  contests.push({
-                    id: `leetcode_${contest.titleSlug || contest.slug}`,
-                    platform: 'LeetCode',
-                    name: contest.title || contest.name,
-                    startTime: new Date(contest.startTime * 1000),
-                    endTime: new Date((contest.startTime + contest.duration) * 1000),
-                    url: `https://leetcode.com/contest/${contest.titleSlug || contest.slug}`,
-                  });
-                }
-              });
-            }
-          } catch (e) {
-            console.log('Could not parse LeetCode JSON data:', e);
-          }
+    const tryKontests = async (): Promise<ContestData[]> => {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const response = await axios.get('https://kontests.net/api/v1/leetcode', {
+            headers: { 'User-Agent': 'contest-calendar-bot' },
+            timeout: timeoutMs,
+          });
+          const data = Array.isArray(response.data) ? response.data : [];
+          return data
+            .filter((c: any) => c && c.start_time && c.end_time && c.name)
+            .map((c: any) => ({
+              id: `leetcode_${c.name.replace(/\s+/g, '_').toLowerCase()}`,
+              platform: 'LeetCode',
+              name: c.name,
+              startTime: new Date(c.start_time),
+              endTime: new Date(c.end_time),
+              url: c.url || `https://leetcode.com/contest/`
+            }));
+        } catch (error) {
+          console.error(`kontests.net fetch attempt ${attempt} failed:`, error);
+          if (attempt === maxAttempts) throw error;
         }
-      });
-  
-      return contests;
-    } catch (error) {
-      console.error('Error fetching LeetCode contests:', error);
+      }
       return [];
+    };
+
+    const tryClist = async (): Promise<ContestData[]> => {
+      const username = process.env.CLIST_USERNAME;
+      const apiKey = process.env.CLIST_API_KEY;
+      if (!username || !apiKey) {
+        console.warn('CLIST credentials missing; skipping fallback.');
+        return [];
+      }
+      const params = new URLSearchParams({ resource: 'leetcode.com', upcoming: 'true', order_by: 'start' });
+      const url = `https://clist.by/api/v2/contest/?${params.toString()}`;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const response = await axios.get(url, {
+            timeout: timeoutMs,
+            auth: { username, password: apiKey },
+          });
+          const objects = Array.isArray(response.data?.objects) ? response.data.objects : [];
+          return objects.map((o: any) => ({
+            id: `leetcode_${String(o.id)}`,
+            platform: 'LeetCode',
+            name: o.event || o.title || 'LeetCode Contest',
+            startTime: new Date(o.start),
+            endTime: new Date(o.end),
+            url: o.href || 'https://leetcode.com/contest/'
+          }));
+        } catch (error) {
+          console.error(`clist.by fetch attempt ${attempt} failed:`, error);
+          if (attempt === maxAttempts) throw error;
+        }
+      }
+      return [];
+    };
+
+    try {
+      return await tryKontests();
+    } catch (primaryError) {
+      console.warn('Primary source failed; falling back to clist.by...');
+      try {
+        return await tryClist();
+      } catch (fallbackError) {
+        console.error('Failed to fetch LeetCode contests from all sources.');
+        return [];
+      }
     }
   }
 

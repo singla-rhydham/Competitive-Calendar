@@ -22,12 +22,15 @@ class GoogleCalendarService {
 
       // Set credentials
       this.oauth2Client.setCredentials({
+        access_token: user.accessToken,
         refresh_token: user.refreshToken
       });
 
-      // Get upcoming contests
+      // Get upcoming contests, filtered by user's selected platforms
+      const platformFilter = Array.isArray(user.platforms) && user.platforms.length > 0 ? { platform: { $in: user.platforms } } : {};
       const upcomingContests = await Contest.find({
-        startTime: { $gte: new Date() }
+        startTime: { $gte: new Date() },
+        ...platformFilter
       }).sort({ startTime: 1 });
 
       if (upcomingContests.length === 0) {
@@ -39,6 +42,7 @@ class GoogleCalendarService {
 
       for (const contest of upcomingContests) {
         try {
+          const minutes = this.mapReminderPreferenceToMinutes(user.reminderPreference);
           const event = {
             summary: `${contest.platform}: ${contest.name}`,
             description: `Coding contest on ${contest.platform}\n\nContest URL: ${contest.url}\n\nGood luck! 🚀`,
@@ -56,22 +60,26 @@ class GoogleCalendarService {
             },
             reminders: {
               useDefault: false,
-              overrides: [
-                { method: 'popup', minutes: 60 }, // 1 hour before
-                { method: 'popup', minutes: 10 }, // 10 minutes before
-              ],
+              overrides: minutes.length ? minutes.map((m) => ({ method: 'popup', minutes: m })) : [{ method: 'popup', minutes: 60 }],
             },
-            colorId: this.getColorIdForPlatform(contest.platform),
+            colorId: this.getColorIdForPlatform(contest.platform, user.platformColors),
           };
 
-          await calendar.events.insert({
+          const response = await calendar.events.insert({
             calendarId: 'primary',
             requestBody: event,
           });
 
           addedCount++;
         } catch (error) {
-          console.error(`Error adding contest ${contest.id} to calendar:`, error);
+          const err = error as any;
+          console.error(`Error adding contest ${contest.id} to calendar:`, {
+            message: err?.message,
+            code: err?.code,
+            errors: err?.errors,
+            responseStatus: err?.response?.status,
+            responseData: err?.response?.data,
+          });
           // Continue with other contests even if one fails
         }
       }
@@ -146,14 +154,30 @@ class GoogleCalendarService {
     }
   }
 
-  private getColorIdForPlatform(platform: string): string {
-    const colorMap: { [key: string]: string } = {
-      'Codeforces': '1', // Red
-      'LeetCode': '2',   // Orange
-      'AtCoder': '3',    // Yellow
-      'CodeChef': '4',   // Green
+  private getColorIdForPlatform(platform: string, userColorMap?: { [key: string]: string }): string {
+    if (userColorMap && userColorMap[platform]) return userColorMap[platform];
+    const defaultColorMap: { [key: string]: string } = {
+      'Codeforces': '1',
+      'LeetCode': '2',
+      'AtCoder': '3',
+      'CodeChef': '4',
     };
-    return colorMap[platform] || '1';
+    return defaultColorMap[platform] || '1';
+  }
+
+  private mapReminderPreferenceToMinutes(pref?: string): number[] {
+    switch (pref) {
+      case '10m':
+        return [10];
+      case '30m':
+        return [30];
+      case '1h':
+        return [60];
+      case '2h':
+        return [120];
+      default:
+        return [60];
+    }
   }
 
   async syncContestsForSubscribedUsers(): Promise<void> {

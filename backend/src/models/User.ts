@@ -9,6 +9,8 @@ export interface IUser extends Document {
   refreshToken?: string;
   subscribed: boolean;
   reminderPreference: string;
+  platforms?: string[];
+  platformColors?: Record<string, string>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +46,19 @@ const UserSchema: Schema = new Schema({
   reminderPreference: {
     type: String,
     default: '1h'
+  },
+  platforms: {
+    type: [String],
+    default: ['Codeforces', 'AtCoder', 'LeetCode', 'CodeChef']
+  },
+  platformColors: {
+    type: Object,
+    default: {
+      Codeforces: '1',
+      AtCoder: '4',
+      LeetCode: '2',
+      CodeChef: '6'
+    }
   }
 }, {
   timestamps: true

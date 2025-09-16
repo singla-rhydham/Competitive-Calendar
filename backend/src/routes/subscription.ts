@@ -22,8 +22,19 @@ router.post('/subscribe', async (req, res) => {
     const userId = user._id;
     console.log('User ID:', userId);
 
-    // Update user subscription status
-    await User.findByIdAndUpdate(userId, { subscribed: true });
+    // Update user subscription status and preferences if provided
+    const { reminderPreference, platforms, platformColors } = req.body || {};
+    const userDoc = await User.findById(userId);
+    if (!userDoc) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (reminderPreference) userDoc.reminderPreference = reminderPreference;
+    if (Array.isArray(platforms)) userDoc.platforms = platforms;
+    if (platformColors) userDoc.platformColors = platformColors;
+    userDoc.subscribed = true;
+
+    await userDoc.save();
 
     // Add contests to user's Google Calendar
     const result = await googleCalendarService.addContestsToUserCalendar(userId);
@@ -60,7 +71,12 @@ router.post('/unsubscribe', async (req, res) => {
     const userId = user._id;
 
     // Update user subscription status
-    await User.findByIdAndUpdate(userId, { subscribed: false });
+    const userDoc = await User.findById(userId);
+    if (!userDoc) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    userDoc.subscribed = false;
+    await userDoc.save();
 
     // Remove contests from user's Google Calendar
     const result = await googleCalendarService.removeContestsFromUserCalendar(userId);
@@ -109,8 +125,17 @@ router.get('/status', async (req, res) => {
     }
 
     res.json({
-      subscribed: userDoc.subscribed,
-      reminderPreference: userDoc.reminderPreference
+      success: true,
+      user: {
+        id: userDoc._id,
+        email: userDoc.email,
+        name: userDoc.name,
+        picture: userDoc.picture,
+        subscribed: userDoc.subscribed,
+        reminderPreference: userDoc.reminderPreference,
+        platforms: userDoc.platforms,
+        platformColors: userDoc.platformColors
+      }
     });
   } catch (error) {
     console.error('Error in status endpoint:', error);
