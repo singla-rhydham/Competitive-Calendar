@@ -69,6 +69,7 @@ router.post('/unsubscribe', async (req, res) => {
 
     const user = req.user as any;
     const userId = user._id;
+    const { removeExisting } = req.body || {};
 
     // Update user subscription status
     const userDoc = await User.findById(userId);
@@ -78,23 +79,23 @@ router.post('/unsubscribe', async (req, res) => {
     userDoc.subscribed = false;
     await userDoc.save();
 
-    // Remove contests from user's Google Calendar
-    const result = await googleCalendarService.removeContestsFromUserCalendar(userId);
-
-    if (result.success) {
-      res.json({
-        success: true,
-        message: result.message
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: result.message
-      });
+    // If user chose to remove existing events, delete from calendar using stored ids
+    if (removeExisting) {
+      const result = await googleCalendarService.removeContestsFromUserCalendar(userId);
+      if (!result.success) {
+        console.error('Unsubscribe deletion errors for user', userId, '-', result.message);
+        return res.status(400).json({ success: false, message: result.message });
+      }
+      return res.json({ success: true, message: result.message });
     }
+
+    return res.json({
+      success: true,
+      message: 'You have unsubscribed. Existing events were kept in your calendar.'
+    });
   } catch (error) {
     console.error('Error in unsubscribe endpoint:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Internal server error'
     });

@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import User from '../models/User.js';
 import Contest from '../models/Contest.js';
+import UserCalendarEvent from '../models/UserCalendarEvent.js';
 
 class GoogleCalendarService {
   private oauth2Client = new google.auth.OAuth2(
@@ -40,8 +41,17 @@ class GoogleCalendarService {
       const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
       let addedCount = 0;
 
+      // Preload existing mappings for fast duplicate checks
+      const existingMappings = await UserCalendarEvent.find({ userId }).lean();
+      const existingContestKeys = new Set(existingMappings.map(m => m.contestKey));
+
       for (const contest of upcomingContests) {
         try {
+          // Skip if already mapped for this user and contest
+          if (existingContestKeys.has(contest.id)) {
+            continue;
+          }
+
           const minutes = this.mapReminderPreferenceToMinutes(user.reminderPreference);
           const event = {
             summary: `${contest.platform}: ${contest.name}`,
@@ -70,7 +80,16 @@ class GoogleCalendarService {
             requestBody: event,
           });
 
-          addedCount++;
+          const googleEventId = response.data.id;
+          if (googleEventId) {
+            await UserCalendarEvent.create({
+              userId,
+              contestId: contest._id,
+              contestKey: contest.id,
+              googleEventId
+            });
+            addedCount++;
+          }
         } catch (error) {
           const err = error as any;
           console.error(`Error adding contest ${contest.id} to calendar:`, {
@@ -113,35 +132,57 @@ class GoogleCalendarService {
 
       const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
 
-      // Get all events from the calendar
-      const events = await calendar.events.list({
-        calendarId: 'primary',
-        timeMin: new Date().toISOString(),
-        maxResults: 1000,
-        singleEvents: true,
-        orderBy: 'startTime',
-      });
+      // Load mappings and ensure we only target events we created with valid googleEventId
+      const mappings = await UserCalendarEvent.find({ userId }).lean();
+      const mappingsWithEventId = mappings.filter(m => !!m.googleEventId);
 
-      const contestEvents = events.data.items?.filter(event => 
-        event.summary?.includes('Codeforces:') ||
-        event.summary?.includes('LeetCode:') ||
-        event.summary?.includes('AtCoder:') ||
-        event.summary?.includes('CodeChef:')
-      ) || [];
+      // Validate contests still exist (extra safeguard)
+      const contestIds = mappingsWithEventId.map(m => m.contestId).filter(Boolean) as any[];
+      const existingContests = contestIds.length ? await Contest.find({ _id: { $in: contestIds } }, { _id: 1 }).lean() : [];
+      const validContestIdSet = new Set(existingContests.map(c => String(c._id)));
 
+      let attempted = 0;
       let removedCount = 0;
-      for (const event of contestEvents) {
-        if (event.id) {
-          try {
-            await calendar.events.delete({
-              calendarId: 'primary',
-              eventId: event.id,
-            });
-            removedCount++;
-          } catch (error) {
-            console.error(`Error removing event ${event.id}:`, error);
+      let skippedNoId = 0;
+      let skippedNoContest = 0;
+      const errors: { eventId: string; message: string }[] = [];
+
+      for (const mapping of mappingsWithEventId) {
+        const eventId = mapping.googleEventId as unknown as string;
+        const contestIdStr = String(mapping.contestId || '');
+
+        // Only delete if contest still exists in DB (as requested safeguard)
+        if (contestIdStr && !validContestIdSet.has(contestIdStr)) {
+          skippedNoContest++;
+          continue;
+        }
+
+        attempted++;
+        try {
+          await calendar.events.delete({
+            calendarId: 'primary',
+            eventId
+          });
+          removedCount++;
+        } catch (error) {
+          const err = error as any;
+          const message = err?.message || err?.response?.data || 'Unknown error';
+          // If event not found (already deleted), we treat as non-fatal and continue
+          if (err?.code !== 404) {
+            console.error(`Failed to delete event ${eventId}:`, message);
+            errors.push({ eventId, message: typeof message === 'string' ? message : JSON.stringify(message) });
           }
         }
+      }
+
+      // Cleanup mappings for this user regardless of delete outcomes
+      await UserCalendarEvent.deleteMany({ userId });
+
+      if (errors.length > 0) {
+        return {
+          success: false,
+          message: `Removed ${removedCount}/${attempted} events. ${skippedNoId + skippedNoContest} skipped. Some deletions failed.`
+        };
       }
 
       return {

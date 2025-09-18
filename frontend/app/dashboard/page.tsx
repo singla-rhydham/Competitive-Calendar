@@ -26,6 +26,8 @@ export default function Dashboard() {
     LeetCode: '2',
     CodeChef: '6'
   });
+  const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
+  const [toast, setToast] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const GOOGLE_COLORS: Record<string, { name: string; bg: string }> = {
     '1': { name: 'Lavender', bg: 'bg-purple-300' },
     '2': { name: 'Sage', bg: 'bg-emerald-300' },
@@ -79,7 +81,15 @@ export default function Dashboard() {
       const response = await fetch('http://localhost:5000/api/contests');
       if (response.ok) {
         const data = await response.json();
-        setContests(data.contests || []);
+        const list = Array.isArray(data.contests) ? data.contests : [];
+        const seen = new Set<string>();
+        const deduped = list.filter((c: any) => {
+          const key = c.id || `${c.platform}:${c.name}:${c.startTime}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setContests(deduped);
       }
     } catch (error) {
       console.error('Error loading contests:', error);
@@ -104,13 +114,13 @@ export default function Dashboard() {
 
   const handleSubscribe = async () => {
     if (isSubscribed) {
-      await submitSubscriptionChange(false);
+      setShowUnsubscribeModal(true);
       return;
     }
     setShowReminderModal(true);
   };
 
-  const submitSubscriptionChange = async (subscribe: boolean, pref?: string) => {
+  const submitSubscriptionChange = async (subscribe: boolean, pref?: string, removeExisting?: boolean) => {
     setIsLoading(true);
     setMessage('');
     try {
@@ -123,7 +133,7 @@ export default function Dashboard() {
           reminderPreference: pref || reminderPreference,
           platforms: selectedPlatforms,
           platformColors
-        }) : undefined,
+        }) : JSON.stringify({ removeExisting: !!removeExisting }),
       });
       const data = await response.json();
       if (data.success) {
@@ -131,15 +141,18 @@ export default function Dashboard() {
         if (subscribe && pref) setReminderPreference(pref);
         setMessage(data.message);
         loadContests();
+        if (subscribe) setShowReminderModal(false);
       } else {
         setMessage(data.message || 'An error occurred');
+        setToast({ type: 'error', message: data.message || 'Failed to update subscription. Please try again.' });
       }
     } catch (error) {
       console.error('Error updating subscription:', error);
       setMessage('An error occurred while updating subscription');
+      setToast({ type: 'error', message: 'Network error while updating subscription. Please try again.' });
     } finally {
       setIsLoading(false);
-      setShowReminderModal(false);
+      // Do not auto-close reminder modal on error so user can retry
     }
   };
 
@@ -363,7 +376,7 @@ export default function Dashboard() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowReminderModal(false)}
+          onClick={() => { if (!isLoading) setShowReminderModal(false); }}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
@@ -434,20 +447,91 @@ export default function Dashboard() {
               <div className="flex justify-end space-x-2 pt-2">
                 <button
                   onClick={() => setShowReminderModal(false)}
-                  className="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20"
+                  disabled={isLoading}
+                  className={`px-4 py-2 rounded-lg ${isLoading ? 'bg-white/5 text-white/50 cursor-not-allowed' : 'bg-white/10 text-white hover:bg-white/20'}`}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => submitSubscriptionChange(true, reminderPreference)}
-                  className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white"
+                  disabled={isLoading}
+                  className={`px-4 py-2 rounded-lg flex items-center justify-center gap-2 ${isLoading ? 'bg-blue-500/60 cursor-wait' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
                 >
-                  Confirm
+                  {isLoading ? (
+                    <>
+                      <span className="inline-block h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <span>Confirm</span>
+                  )}
                 </button>
               </div>
             </div>
           </motion.div>
         </motion.div>
+      )}
+
+      {/* Unsubscribe Modal */}
+      {showUnsubscribeModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowUnsubscribeModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className="text-xl font-semibold text-white mb-2">Unsubscribe options</h4>
+            <p className="text-gray-300 mb-4">Choose what to do with your existing contest events.</p>
+            <div className="space-y-3">
+              <button
+                disabled={isLoading}
+                onClick={async () => {
+                  setShowUnsubscribeModal(false);
+                  await submitSubscriptionChange(false, undefined, true);
+                }}
+                className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
+                  isLoading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-white/15'
+                } border-white/20 bg-red-500/10 text-red-200`}
+              >
+                Remove all my contest events from Google Calendar
+              </button>
+              <button
+                disabled={isLoading}
+                onClick={async () => {
+                  setShowUnsubscribeModal(false);
+                  await submitSubscriptionChange(false, undefined, false);
+                }}
+                className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
+                  isLoading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-white/15'
+                } border-white/20 bg-yellow-500/10 text-yellow-200`}
+              >
+                Keep existing events but stop adding new ones
+              </button>
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => setShowUnsubscribeModal(false)}
+                  className="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20"
+                >
+                  Cancel (I don’t want to unsubscribe)
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg border ${toast.type === 'error' ? 'bg-red-500/20 text-red-100 border-red-500/30' : 'bg-green-500/20 text-green-100 border-green-500/30'}`}
+             onAnimationEnd={() => setTimeout(() => setToast(null), 4000)}>
+          {toast.message}
+        </div>
       )}
     </div>
   );
