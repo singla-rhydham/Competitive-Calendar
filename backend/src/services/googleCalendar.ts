@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import moment from 'moment-timezone';
 import User from '../models/User.js';
 import Contest from '../models/Contest.js';
 import UserCalendarEvent from '../models/UserCalendarEvent.js';
@@ -53,16 +54,17 @@ class GoogleCalendarService {
           }
 
           const minutes = this.mapReminderPreferenceToMinutes(user.reminderPreference);
+          const userTimeZone = user.timeZone || 'Asia/Kolkata';
           const event = {
             summary: `${contest.platform}: ${contest.name}`,
             description: `Coding contest on ${contest.platform}\n\nContest URL: ${contest.url}\n\nGood luck! 🚀`,
             start: {
-              dateTime: contest.startTime.toISOString(),
-              timeZone: 'UTC',
+              dateTime: moment(contest.startTime).tz(userTimeZone).format(),
+              timeZone: userTimeZone,
             },
             end: {
-              dateTime: contest.endTime.toISOString(),
-              timeZone: 'UTC',
+              dateTime: moment(contest.endTime).tz(userTimeZone).format(),
+              timeZone: userTimeZone,
             },
             source: {
               title: contest.platform,
@@ -127,8 +129,9 @@ class GoogleCalendarService {
 
       // Set credentials
       this.oauth2Client.setCredentials({
-        refresh_token: user.refreshToken
-      });
+        access_token: user.accessToken,
+        refresh_token: user.refreshToken,
+      }); 
 
       const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
 

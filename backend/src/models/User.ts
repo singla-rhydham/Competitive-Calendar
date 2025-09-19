@@ -11,6 +11,7 @@ export interface IUser extends Document {
   reminderPreference: string;
   platforms?: string[];
   platformColors?: Record<string, string>;
+  timeZone?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +60,10 @@ const UserSchema: Schema = new Schema({
       LeetCode: '2',
       CodeChef: '6'
     }
+  },
+  timeZone: {
+    type: String,
+    default: 'Asia/Kolkata'
   }
 }, {
   timestamps: true

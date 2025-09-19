@@ -23,7 +23,7 @@ router.post('/subscribe', async (req, res) => {
     console.log('User ID:', userId);
 
     // Update user subscription status and preferences if provided
-    const { reminderPreference, platforms, platformColors } = req.body || {};
+    const { reminderPreference, platforms, platformColors, timeZone } = req.body || {};
     const userDoc = await User.findById(userId);
     if (!userDoc) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -32,6 +32,7 @@ router.post('/subscribe', async (req, res) => {
     if (reminderPreference) userDoc.reminderPreference = reminderPreference;
     if (Array.isArray(platforms)) userDoc.platforms = platforms;
     if (platformColors) userDoc.platformColors = platformColors;
+    if (timeZone) userDoc.timeZone = timeZone;
     userDoc.subscribed = true;
 
     await userDoc.save();

@@ -125,6 +125,7 @@ export default function Dashboard() {
     setMessage('');
     try {
       const endpoint = subscribe ? '/api/subscribe' : '/api/unsubscribe';
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const response = await fetch(`http://localhost:5000${endpoint}`, {
         method: 'POST',
         credentials: 'include',
@@ -132,7 +133,8 @@ export default function Dashboard() {
         body: subscribe ? JSON.stringify({
           reminderPreference: pref || reminderPreference,
           platforms: selectedPlatforms,
-          platformColors
+          platformColors,
+          timeZone: userTimeZone
         }) : JSON.stringify({ removeExisting: !!removeExisting }),
       });
       const data = await response.json();
