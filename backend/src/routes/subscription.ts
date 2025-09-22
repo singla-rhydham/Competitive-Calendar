@@ -169,6 +169,12 @@ router.get('/contests', async (req, res) => {
       updatedAt: contest.updatedAt
     }));
 
+    console.log("DEBUG: Raw contests fetched from DB:", upcomingContests.map(c => ({
+      id: c.id,
+      platform: c.platform,
+      name: c.name,
+      startTime: c.startTime
+    })));
     console.log(`Returning ${transformedContests.length} upcoming contests`);
 
     res.json({

@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import Contest from '../models/Contest.js';
 import cron from 'node-cron';
 import googleCalendarService from './googleCalendar.js';
+import { DateTime } from 'luxon';
 
 interface ContestData {
   id: string;
@@ -100,95 +101,58 @@ class ContestUpdater {
   }
 
   private async fetchLeetCodeContests(): Promise<ContestData[]> {
-    // Try primary (kontests.net) with retry+timeout, then fallback to clist.by with retry+timeout
-    const maxAttempts = 2;
-    const timeoutMs = 5000;
-
-    const tryKontests = async (): Promise<ContestData[]> => {
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-          const response = await axios.get('https://kontests.net/api/v1/leetcode', {
-            headers: { 'User-Agent': 'contest-calendar-bot' },
-            timeout: timeoutMs,
-          });
-          const data = Array.isArray(response.data) ? response.data : [];
-          return data
-            .filter((c: any) => c && c.start_time && c.end_time && c.name)
-            .map((c: any) => ({
-              id: `leetcode_${c.name.replace(/\s+/g, '_').toLowerCase()}`,
-              platform: 'LeetCode',
-              name: c.name,
-              startTime: new Date(c.start_time),
-              endTime: new Date(c.end_time),
-              url: c.url || `https://leetcode.com/contest/`
-            }));
-        } catch (error) {
-          console.error(`kontests.net fetch attempt ${attempt} failed:`, error);
-          if (attempt === maxAttempts) throw error;
-        }
-      }
-      return [];
-    };
-
-    const tryClist = async (): Promise<ContestData[]> => {
-      const username = process.env.CLIST_USERNAME;
-      const apiKey = process.env.CLIST_API_KEY;
-      if (!username || !apiKey) {
-        console.warn('CLIST credentials missing; skipping fallback.');
-        return [];
-      }
-      const params = new URLSearchParams({ resource: 'leetcode.com', upcoming: 'true', order_by: 'start' });
-      const url = `https://clist.by/api/v2/contest/?${params.toString()}`;
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-          const response = await axios.get(url, {
-            timeout: timeoutMs,
-            auth: { username, password: apiKey },
-          });
-          const objects = Array.isArray(response.data?.objects) ? response.data.objects : [];
-          return objects.map((o: any) => ({
-            id: `leetcode_${String(o.id)}`,
-            platform: 'LeetCode',
-            name: o.event || o.title || 'LeetCode Contest',
-            startTime: new Date(o.start),
-            endTime: new Date(o.end),
-            url: o.href || 'https://leetcode.com/contest/'
-          }));
-        } catch (error) {
-          console.error(`clist.by fetch attempt ${attempt} failed:`, error);
-          if (attempt === maxAttempts) throw error;
-        }
-      }
-      return [];
-    };
-
-    try {
-      return await tryKontests();
-    } catch (primaryError) {
-      console.warn('Primary source failed; falling back to clist.by...');
-      try {
-        return await tryClist();
-      } catch (fallbackError) {
-        console.error('Failed to fetch LeetCode contests from all sources.');
-        return [];
-      }
-    }
-  }
-
-  private async getLeetCodeContestInfo(slug: string): Promise<any> {
-    try {
-      const response = await axios.get(`https://leetcode.com/contest/api/info/${slug}`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      return response.data.contest;
-    } catch (error) {
-      console.log(`Could not fetch LeetCode contest info for ${slug}:`, error);
-      return null;
-    }
-  }
+    // LeetCode's official GraphQL endpoint
+    const LEETCODE_API_URL = 'https://leetcode.com/graphql';
   
+    // The GraphQL query to fetch upcoming contests
+    const GQL_QUERY = `
+      query {
+        upcomingContests {
+          title
+          titleSlug
+          startTime
+          duration
+        }
+      }
+    `;
+  
+    try {
+      const response = await axios.post(
+        LEETCODE_API_URL,
+        { query: GQL_QUERY }, // The request body must contain the query
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'contest-calendar-bot', // Good practice to set a user-agent
+          },
+          timeout: 5000, // 5-second timeout
+        },
+      );
+  
+      // The contest data is nested under data.upcomingContests
+      const contests = response.data?.data?.upcomingContests || [];
+  
+      return contests.map((c: any) => {
+        // LeetCode API provides timestamps in seconds, but JavaScript's Date needs milliseconds.
+        const startTime = new Date(c.startTime * 1000);
+        
+        // The API provides duration in seconds.
+        const endTime = new Date(startTime.getTime() + c.duration * 1000);
+  
+        return {
+          id: `leetcode_${c.titleSlug}`,
+          platform: 'LeetCode',
+          name: c.title,
+          startTime: startTime,
+          endTime: endTime,
+          url: `https://leetcode.com/contest/${c.titleSlug}`,
+        };
+      });
+    } catch (error) {
+      console.error('Failed to fetch LeetCode contests directly:', error);
+      return []; // Return an empty array on failure
+    }
+  }
 
   private async fetchAtCoderContests(): Promise<ContestData[]> {
     try {
@@ -199,26 +163,41 @@ class ContestUpdater {
       // Load into cheerio
       const $ = cheerio.load(html);
   
-      // AtCoder has tables for upcoming contests, typically inside the 1st table of "Future Contests"
       const contests: ContestData[] = [];
   
-      // Select the "Upcoming Contests" section
+      // Select the "Upcoming Contests" table body
       $('#contest-table-upcoming tbody tr').each((i, el) => {
         const tds = $(el).find('td');
   
-        const dateText = $(tds[0]).text().trim();
+        // Ensure the row has the expected number of columns
+        if (tds.length < 3) {
+          return; // Skip malformed rows
+        }
+  
+        // --- FIX 1: Correctly parse the start time ---
+        // Get the time string from the text content of the <time> tag
+        const startTimeRaw = $(tds[0]).find('time').text().trim();
+        if (!startTimeRaw) {
+          return; // Skip if time is not found
+        }
+  
+        // The raw string is like "2025-09-21 21:00:00+0900".
+        // We need to replace the space with a 'T' to make it a valid ISO string for Luxon.
+        const startTimeISO = startTimeRaw.replace(' ', 'T');
+        const startTime = DateTime.fromISO(startTimeISO).toJSDate();
+  
+        // Get contest name and URL
         const nameAnchor = $(tds[1]).find('a');
+        const name = nameAnchor.text().trim();
         const contestUrl = 'https://atcoder.jp' + nameAnchor.attr('href');
   
-        const name = nameAnchor.text().trim();
+        // --- FIX 2: Parse duration and calculate the correct end time ---
+        const durationText = $(tds[2]).text().trim(); // e.g., "01:40"
+        const [hours, minutes] = durationText.split(':').map(Number);
   
-        // parse date/time (AtCoder shows JST times)
-        // Example format: 2025-09-21 21:00:00+0900
-        const startTimeStr = $(tds[0]).find('time').attr('datetime');
-        const startTime = startTimeStr ? new Date(startTimeStr) : new Date();
-  
-        // You can’t get end time easily; assume +2 hours or leave blank.
-        const endTime = new Date(startTime.getTime() + 2 * 60 * 60 * 1000);
+        const endTime = DateTime.fromJSDate(startTime)
+          .plus({ hours: hours, minutes: minutes })
+          .toJSDate();
   
         contests.push({
           id: `atcoder_${nameAnchor.attr('href')?.split('/').pop()}`,
@@ -226,7 +205,7 @@ class ContestUpdater {
           name,
           startTime,
           endTime,
-          url: contestUrl
+          url: contestUrl,
         });
       });
   
