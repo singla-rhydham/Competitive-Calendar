@@ -19,18 +19,13 @@ interface ContestListProps {
 }
 
 export default function ContestList({ contests }: ContestListProps) {
-  // Sort contests by start time
-  const sortedContests = [...contests].sort((a, b) => 
-    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  const sortedContests = [...contests].sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );
 
-  // Group contests by date
   const contestsByDate = sortedContests.reduce((acc, contest) => {
     const date = new Date(contest.startTime).toDateString();
-    if (!acc[date]) {
-      acc[date] = [];
-    }
-    acc[date].push(contest);
+    (acc[date] ||= []).push(contest);
     return acc;
   }, {} as Record<string, Contest[]>);
 
@@ -39,19 +34,15 @@ export default function ContestList({ contests }: ContestListProps) {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return 'Tomorrow';
-    } else {
-      return date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    }
+
+    if (date.toDateString() === today.toDateString()) return "Today";
+    if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
   if (sortedContests.length === 0) {
@@ -62,15 +53,22 @@ export default function ContestList({ contests }: ContestListProps) {
         transition={{ duration: 0.8, delay: 0.7 }}
         className="mb-12"
       >
-        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20 shadow-2xl">
+        <div
+          className="
+            rounded-3xl p-8
+            bg-white dark:bg-slate-800
+            border border-slate-200 dark:border-slate-700
+            shadow-sm
+          "
+        >
           <div className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-gray-500 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 rounded-full bg-teal-50 dark:bg-slate-700 flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-teal-600 dark:text-white" />
             </div>
-            <h3 className="text-2xl font-semibold text-white mb-2">
+            <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2">
               No Contests Available
             </h3>
-            <p className="text-gray-300">
+            <p className="text-slate-700 dark:text-slate-300">
               There are no upcoming contests at the moment. Check back later for new contests!
             </p>
           </div>
@@ -86,25 +84,39 @@ export default function ContestList({ contests }: ContestListProps) {
       transition={{ duration: 0.8, delay: 0.7 }}
       className="mb-12"
     >
-      <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20 shadow-2xl">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+      <div
+        className="
+          rounded-3xl p-8
+          bg-white dark:bg-slate-800
+          border border-slate-200 dark:border-slate-700
+          shadow-sm
+        "
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-xl bg-teal-600 flex items-center justify-center">
             <Calendar className="w-6 h-6 text-white" />
           </div>
-          <h3 className="text-2xl font-semibold text-white">
+          <h3 className="text-2xl font-semibold text-slate-900 dark:text-white">
             Upcoming Contests
           </h3>
         </div>
-        
+
         <div className="space-y-8">
-          {Object.entries(contestsByDate).map(([date, dateContests], dateIndex) => (
+          {Object.entries(contestsByDate).map(([date, dateContests], idx) => (
             <motion.div
               key={date}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: dateIndex * 0.1 }}
+              transition={{ duration: 0.5, delay: idx * 0.1 }}
             >
-              <h4 className="text-lg font-semibold text-white mb-4 border-b border-white/20 pb-2">
+              <h4
+                className="
+                  text-lg font-semibold
+                  text-slate-900 dark:text-white
+                  border-b border-slate-200 dark:border-slate-700
+                  pb-2
+                "
+              >
                 {formatDateHeader(date)}
               </h4>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

@@ -51,7 +51,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* Header Section */}
       <motion.header
         initial={{ opacity: 0, y: -50 }}
@@ -63,7 +63,7 @@ export default function Home() {
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full shadow-2xl"
+          className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-teal-600 rounded-full shadow"
         >
           <Calendar className="w-10 h-10 text-white" />
         </motion.div>
@@ -72,7 +72,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-5xl md:text-7xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
+          className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-4"
         >
           Contest Calendar
         </motion.h1>
@@ -81,7 +81,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="text-xl md:text-2xl text-gray-300 font-light"
+          className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 font-light"
         >
           Never miss a coding contest again.
         </motion.p>
@@ -94,7 +94,7 @@ export default function Home() {
         transition={{ duration: 0.8, delay: 0.8 }}
         className="max-w-4xl mx-auto px-6 mb-16"
       >
-        <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 md:p-12 border border-white/20 shadow-2xl">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 md:p-12 border border-gray-200 dark:border-slate-700 shadow">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -105,24 +105,24 @@ export default function Home() {
               <div className="flex space-x-4">
                 <motion.div
                   whileHover={{ scale: 1.1, rotate: 5 }}
-                  className="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl"
+                  className="p-3 bg-teal-600 rounded-xl"
                 >
                   <Code className="w-6 h-6 text-white" />
                 </motion.div>
                 <motion.div
                   whileHover={{ scale: 1.1, rotate: -5 }}
-                  className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl"
+                  className="p-3 bg-slate-600 rounded-xl"
                 >
                   <Clock className="w-6 h-6 text-white" />
                 </motion.div>
               </div>
             </div>
             
-            <h2 className="text-2xl md:text-3xl font-semibold text-white mb-6">
+            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6">
               Stay Ahead of Every Contest
             </h2>
             
-            <p className="text-lg md:text-xl text-gray-300 leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 leading-relaxed">
               This tool integrates upcoming programming contests directly into your Google Calendar 
               with custom reminders, so you can focus on solving problems, not tracking dates.
             </p>
@@ -140,28 +140,28 @@ export default function Home() {
         <div className="text-center">
           {isLoading ? (
             <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
             </div>
           ) : user ? (
             <div className="space-y-4">
-              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-200 dark:border-slate-700">
                 <div className="flex items-center space-x-4 mb-4">
                   {user.picture && (
                     <img
                       src={user.picture}
                       alt="Profile"
-                      className="w-12 h-12 rounded-full border-2 border-white/20"
+                      className="w-12 h-12 rounded-full border-2 border-gray-200 dark:border-slate-700"
                     />
                   )}
                   <div className="text-left">
-                    <h3 className="text-lg font-semibold text-white">{user.name}</h3>
-                    <p className="text-sm text-gray-300">{user.email}</p>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{user.name}</h3>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{user.email}</p>
                   </div>
                 </div>
                 <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
                   user.subscribed 
-                    ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
-                    : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
+                    ? 'bg-teal-50 text-teal-700 border border-teal-200' 
+                    : 'bg-gray-100 text-gray-700 border border-gray-200'
                 }`}>
                   {user.subscribed ? 'Subscribed to notifications' : 'Not subscribed'}
                 </div>
@@ -171,7 +171,7 @@ export default function Home() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => window.location.href = '/dashboard'}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300"
+                  className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
                 >
                   Go to Dashboard
                 </motion.button>
@@ -186,7 +186,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 1.4 }}
-            className="text-sm text-gray-400 mt-4"
+            className="text-sm text-gray-600 dark:text-gray-400 mt-4"
           >
             {user ? 'Manage your contest notifications' : 'Grant access to sync contests into your Google Calendar'}
           </motion.p>
@@ -200,7 +200,7 @@ export default function Home() {
         transition={{ duration: 0.8, delay: 1.6 }}
         className="text-center pb-8"
       >
-        <div className="flex items-center justify-center space-x-2 text-gray-400">
+        <div className="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-400">
           <span>Built with</span>
           <motion.div
             animate={{ scale: [1, 1.2, 1] }}
