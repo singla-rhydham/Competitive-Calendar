@@ -60,6 +60,12 @@ export function useSubscription(initialSubscribed?: boolean): UseSubscriptionRet
     }
   };
 
+  // Initialize subscription state from backend on first mount
+  useEffect(() => {
+    checkSubscriptionStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const submitSubscriptionChange = async (subscribe: boolean, pref?: string, removeExisting?: boolean) => {
     setIsLoading(true);
     setMessage('');

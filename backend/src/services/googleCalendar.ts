@@ -2,7 +2,6 @@ import { google } from 'googleapis';
 import moment from 'moment-timezone';
 import User from '../models/User.js';
 import Contest from '../models/Contest.js';
-import UserCalendarEvent from '../models/UserCalendarEvent.js';
 
 class GoogleCalendarService {
   private oauth2Client = new google.auth.OAuth2(
@@ -42,9 +41,8 @@ class GoogleCalendarService {
       const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
       let addedCount = 0;
 
-      // Preload existing mappings for fast duplicate checks
-      const existingMappings = await UserCalendarEvent.find({ userId }).lean();
-      const existingContestKeys = new Set(existingMappings.map(m => m.contestKey));
+      // Get existing events from Google Calendar to check for duplicates
+      const existingContestKeys = await this.getExistingContestKeys(calendar);
 
       for (const contest of upcomingContests) {
         try {
@@ -70,6 +68,11 @@ class GoogleCalendarService {
               title: contest.platform,
               url: contest.url,
             },
+            extendedProperties: {
+              private: {
+                contestKey: contest.id
+              }
+            },
             reminders: {
               useDefault: false,
               overrides: minutes.length ? minutes.map((m) => ({ method: 'popup', minutes: m })) : [{ method: 'popup', minutes: 60 }],
@@ -84,12 +87,6 @@ class GoogleCalendarService {
 
           const googleEventId = response.data.id;
           if (googleEventId) {
-            await UserCalendarEvent.create({
-              userId,
-              contestId: contest._id,
-              contestKey: contest.id,
-              googleEventId
-            });
             addedCount++;
           }
         } catch (error) {
@@ -135,30 +132,16 @@ class GoogleCalendarService {
 
       const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
 
-      // Load mappings and ensure we only target events we created with valid googleEventId
-      const mappings = await UserCalendarEvent.find({ userId }).lean();
-      const mappingsWithEventId = mappings.filter(m => !!m.googleEventId);
-
-      // Validate contests still exist (extra safeguard)
-      const contestIds = mappingsWithEventId.map(m => m.contestId).filter(Boolean) as any[];
-      const existingContests = contestIds.length ? await Contest.find({ _id: { $in: contestIds } }, { _id: 1 }).lean() : [];
-      const validContestIdSet = new Set(existingContests.map(c => String(c._id)));
-
+      // Get all events from Google Calendar that were created by our app
+      const contestEvents = await this.getContestEventsFromCalendar(calendar);
+      
       let attempted = 0;
       let removedCount = 0;
-      let skippedNoId = 0;
-      let skippedNoContest = 0;
       const errors: { eventId: string; message: string }[] = [];
 
-      for (const mapping of mappingsWithEventId) {
-        const eventId = mapping.googleEventId as unknown as string;
-        const contestIdStr = String(mapping.contestId || '');
-
-        // Only delete if contest still exists in DB (as requested safeguard)
-        if (contestIdStr && !validContestIdSet.has(contestIdStr)) {
-          skippedNoContest++;
-          continue;
-        }
+      for (const event of contestEvents) {
+        const eventId = event.id;
+        if (!eventId) continue;
 
         attempted++;
         try {
@@ -178,13 +161,10 @@ class GoogleCalendarService {
         }
       }
 
-      // Cleanup mappings for this user regardless of delete outcomes
-      await UserCalendarEvent.deleteMany({ userId });
-
       if (errors.length > 0) {
         return {
           success: false,
-          message: `Removed ${removedCount}/${attempted} events. ${skippedNoId + skippedNoContest} skipped. Some deletions failed.`
+          message: `Removed ${removedCount}/${attempted} events. Some deletions failed.`
         };
       }
 
@@ -238,6 +218,58 @@ class GoogleCalendarService {
       }
     } catch (error) {
       console.error('Error syncing contests for subscribed users:', error);
+    }
+  }
+
+  /**
+   * Get existing contest keys from Google Calendar events
+   */
+  private async getExistingContestKeys(calendar: any): Promise<Set<string>> {
+    try {
+      const events = await this.getContestEventsFromCalendar(calendar);
+      const contestKeys = new Set<string>();
+      
+      for (const event of events) {
+        const contestKey = event.extendedProperties?.private?.contestKey;
+        if (contestKey) {
+          contestKeys.add(contestKey);
+        }
+      }
+      
+      return contestKeys;
+    } catch (error) {
+      console.error('Error getting existing contest keys:', error);
+      return new Set();
+    }
+  }
+
+  /**
+   * Get all contest events from Google Calendar that were created by our app
+   */
+  private async getContestEventsFromCalendar(calendar: any): Promise<any[]> {
+    try {
+      // Get events from the past month to current + 6 months to cover all contest events
+      const timeMin = moment().subtract(1, 'month').toISOString();
+      const timeMax = moment().add(6, 'months').toISOString();
+      
+      const response = await calendar.events.list({
+        calendarId: 'primary',
+        timeMin,
+        timeMax,
+        maxResults: 2500, // Increase limit to get more events
+        singleEvents: true,
+        orderBy: 'startTime',
+      });
+
+      const events = response.data.items || [];
+      
+      // Filter events that have our contestKey in extendedProperties
+      return events.filter((event: any) => 
+        event.extendedProperties?.private?.contestKey
+      );
+    } catch (error) {
+      console.error('Error getting contest events from calendar:', error);
+      return [];
     }
   }
 }

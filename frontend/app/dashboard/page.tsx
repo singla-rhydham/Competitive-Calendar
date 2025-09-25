@@ -27,9 +27,10 @@ export default function Dashboard() {
 
     if (name && email) {
       setUser({ name, email, picture: picture || "", subscribed: false });
-    } else {
-      fetchUserFromBackend();
     }
+
+    // Always fetch from backend to get authoritative subscription state
+    fetchUserFromBackend();
 
     loadContests();
   }, [searchParams]);

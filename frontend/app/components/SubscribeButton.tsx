@@ -330,8 +330,8 @@ export default function SubscribeButton({
                   await handleSubmitSubscription(false, undefined, true);
                 }}
                 className={`
-                  w-full text-left px-4 py-3 rounded-xl border transition-colors
-                  ${isLoading ? "opacity-60 cursor-not-allowed" : "hover:bg-rose-50 dark:hover:bg-rose-900/20"}
+                  w-full text-left px-4 py-3 rounded-xl border transition-colors transform transition-transform transition-shadow duration-200 ease-out
+                  ${isLoading ? "opacity-60 cursor-not-allowed" : "hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:shadow-lg hover:scale-[1.02]"}
                   border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-900/10
                   text-rose-700 dark:text-rose-200
                 `}
@@ -345,8 +345,8 @@ export default function SubscribeButton({
                   await handleSubmitSubscription(false, undefined, false);
                 }}
                 className={`
-                  w-full text-left px-4 py-3 rounded-xl border transition-colors
-                  ${isLoading ? "opacity-60 cursor-not-allowed" : "hover:bg-amber-50 dark:hover:bg-amber-900/20"}
+                  w-full text-left px-4 py-3 rounded-xl border transition-colors transform transition-transform transition-shadow duration-200 ease-out
+                  ${isLoading ? "opacity-60 cursor-not-allowed" : "hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:shadow-lg hover:scale-[1.02]"}
                   border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/10
                   text-amber-700 dark:text-amber-200
                 `}
@@ -356,7 +356,7 @@ export default function SubscribeButton({
               <div className="flex justify-end pt-2">
                 <button
                   onClick={() => setShowUnsubscribeModal(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white dark:border-slate-600"
+                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white dark:border-slate-600 transform transition-transform transition-shadow duration-200 ease-out hover:shadow-lg hover:scale-[1.02]"
                 >
                   Cancel (I don't want to unsubscribe)
                 </button>
