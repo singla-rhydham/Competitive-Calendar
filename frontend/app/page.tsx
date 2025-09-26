@@ -103,18 +103,32 @@ export default function Home() {
           >
             <div className="flex justify-center mb-6">
               <div className="flex space-x-4">
-                <motion.div
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  className="p-3 bg-teal-600 rounded-xl"
+                <a
+                  href="https://github.com/singla-rhydham/Competitive-Calendar"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block"
+                  >
+                  <motion.div
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    className="p-3 bg-teal-600 rounded-xl"
+                    >
+                    <Code className="w-6 h-6 text-white" />
+                  </motion.div>
+                </a>
+                <a
+                  href="https://github.com/rhydham-nith"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block"
                 >
-                  <Code className="w-6 h-6 text-white" />
-                </motion.div>
-                <motion.div
-                  whileHover={{ scale: 1.1, rotate: -5 }}
-                  className="p-3 bg-slate-600 rounded-xl"
-                >
-                  <Clock className="w-6 h-6 text-white" />
-                </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.1, rotate: -5 }}
+                    className="p-3 bg-slate-600 rounded-xl"
+                  >
+                    <Clock className="w-6 h-6 text-white" />
+                  </motion.div>
+                </a>
               </div>
             </div>
             

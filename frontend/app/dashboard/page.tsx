@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Calendar, Mail, Bell } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import ContestCalendar from "../components/ContestCalendar";
 import SubscribeButton from "../components/SubscribeButton";
 import ContestList from "../components/ContestList";
@@ -19,6 +19,8 @@ export default function Dashboard() {
     subscribed: false,
   });
   const [contests, setContests] = useState([]);
+  const calendarSectionRef = useRef<HTMLDivElement | null>(null);
+  const welcomeCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const name = searchParams.get("name");
@@ -129,7 +131,7 @@ export default function Dashboard() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="mb-12"
         >
-          <div className="bg-white rounded-3xl p-8 border border-teal-200 shadow-xl">
+          <div ref={welcomeCardRef} className="bg-white rounded-3xl p-8 border border-teal-200 shadow-xl">
             <div className="flex items-center space-x-6">
               {user.picture && (
                 <motion.img
@@ -141,14 +143,21 @@ export default function Dashboard() {
                   className="w-20 h-20 rounded-full border-4 border-teal-200"
                 />
               )}
-              <div>
+              <div className="min-w-0">
                 <motion.h2
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.8 }}
-                  className="text-3xl font-bold text-teal-800 mb-2"
+                  className={`font-bold text-teal-800 mb-2 text-2xl md:text-4xl break-words truncate text-ellipsis max-w-[220px] sm:max-w-[320px] md:max-w-[640px]`}
                 >
-                  Hi, {user.name} 👋
+                  Hi,
+                  {' '}
+                  <span className="md:hidden align-baseline">
+                    {(user.name || '').split(' ')[0]}
+                  </span>
+                  <span className="hidden md:inline align-baseline">
+                    {user.name} {' '}👋
+                  </span>
                 </motion.h2>
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
@@ -157,7 +166,7 @@ export default function Dashboard() {
                   className="flex items-center space-x-2 text-teal-600"
                 >
                   <Mail className="w-4 h-4" />
-                  <span>{user.email}</span>
+                  <span className="truncate block max-w-[220px] sm:max-w-[320px] md:max-w-[480px]">{user.email}</span>
                 </motion.div>
               </div>
             </div>
@@ -177,7 +186,9 @@ export default function Dashboard() {
           transition={{ duration: 0.8, delay: 0.7 }}
           className="mb-12"
         >
-          <ContestCalendar contests={contests} />
+          <div ref={calendarSectionRef}>
+            <ContestCalendar contests={contests} />
+          </div>
         </motion.section>
 
         {/* Contest List Section */}
@@ -197,6 +208,7 @@ export default function Dashboard() {
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 className="bg-teal-50 rounded-2xl p-6 border border-teal-100"
+                onClick={() => calendarSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
               >
                 <div className="w-12 h-12 bg-gradient-to-r from-teal-400 to-teal-600 rounded-xl flex items-center justify-center mb-4">
                   <Calendar className="w-6 h-6 text-white" />
@@ -213,6 +225,7 @@ export default function Dashboard() {
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 className="bg-teal-50 rounded-2xl p-6 border border-teal-100"
+                onClick={() => welcomeCardRef.current?.scrollIntoView({ behavior: 'smooth' })}
               >
                 <div className="w-12 h-12 bg-gradient-to-r from-cyan-400 to-teal-500 rounded-xl flex items-center justify-center mb-4">
                   <Bell className="w-6 h-6 text-white" />

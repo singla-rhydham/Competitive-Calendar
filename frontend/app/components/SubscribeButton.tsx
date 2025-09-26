@@ -159,14 +159,14 @@ export default function SubscribeButton({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-x-hidden"
           onClick={() => !isLoading && setShowReminderModal(false)}
         >
           <motion.div
             initial={{ scale: 0.98, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="
-              max-w-md w-full
+              w-full max-w-sm sm:max-w-md md:max-w-lg mx-4
               rounded-2xl p-6
               bg-white dark:bg-slate-800
               border border-slate-200 dark:border-slate-700
@@ -301,14 +301,14 @@ export default function SubscribeButton({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-x-hidden"
           onClick={() => setShowUnsubscribeModal(false)}
         >
           <motion.div
             initial={{ scale: 0.98, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="
-              max-w-md w-full
+              w-full max-w-sm sm:max-w-md md:max-w-lg mx-4
               rounded-2xl p-6
               bg-white dark:bg-slate-800
               border border-slate-200 dark:border-slate-700
