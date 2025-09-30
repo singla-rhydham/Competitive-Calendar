@@ -16,12 +16,14 @@ interface GoogleLoginButtonProps {
 
 export default function GoogleLoginButton({ user, onLogout }: GoogleLoginButtonProps) {
   const handleLogin = () => {
-    window.location.href = "http://localhost:5000/auth/google";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+    window.location.href = `${backendUrl}/auth/google`;
   };
 
   const handleLogout = () => {
     if (onLogout) return onLogout();
-    fetch("http://localhost:5000/auth/logout", {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+    fetch(`${backendUrl}/auth/logout`, {
       method: "POST",
       credentials: "include",
     }).then(() => (window.location.href = "/"));

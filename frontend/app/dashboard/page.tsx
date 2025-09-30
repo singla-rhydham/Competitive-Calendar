@@ -3,7 +3,8 @@
 import { motion } from "framer-motion";
 import { Calendar, Mail, Bell } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import ContestCalendar from "../components/ContestCalendar";
 import SubscribeButton from "../components/SubscribeButton";
 import ContestList from "../components/ContestList";
@@ -38,8 +39,9 @@ export default function Dashboard() {
   }, [searchParams]);
 
   const fetchUserFromBackend = async () => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
     try {
-      const response = await fetch("http://localhost:5000/auth/me", {
+      const response = await fetch(`${backendUrl}/auth/me`, {
         credentials: "include",
       });
 
@@ -52,17 +54,20 @@ export default function Dashboard() {
           subscribed: userData.subscribed || false,
         });
       } else {
-        window.location.href = "/";
+        const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+        window.location.href = `${frontendUrl}/`;
       }
     } catch (error) {
       console.error("Error fetching user from backend:", error);
-      window.location.href = "/";
+      const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+      window.location.href = `${frontendUrl}/`;
     }
   };
 
   const loadContests = async () => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
     try {
-      const response = await fetch("http://localhost:5000/api/contests");
+      const response = await fetch(`${backendUrl}/api/contests`);
       if (response.ok) {
         const data = await response.json();
         const list = Array.isArray(data.contests) ? data.contests : [];
@@ -81,16 +86,33 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const interval = setInterval(loadContests, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    // Disable auto-refresh in production builds
+    if (process.env.NODE_ENV !== 'production') {
+      const interval = setInterval(loadContests, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+    return () => {};
   }, []);
 
+  // Track image load error to show fallback avatar
+  const [imgError, setImgError] = useState(false);
+
+  const initials = (user.name || "")
+    .trim()
+    .split(/\s+/)
+    .map((s: string) => s[0] || "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   const handleLogout = () => {
-    fetch("http://localhost:5000/auth/logout", {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+    const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+    fetch(`${backendUrl}/auth/logout`, {
       method: "POST",
       credentials: "include",
     }).then(() => {
-      window.location.href = "/";
+      window.location.href = `${frontendUrl}/`;
     });
   };
 
@@ -133,15 +155,40 @@ export default function Dashboard() {
         >
           <div ref={welcomeCardRef} className="bg-white rounded-3xl p-8 border border-teal-200 shadow-xl">
             <div className="flex items-center space-x-6">
-              {user.picture && (
-                <motion.img
+              {/* Profile picture with next/image and fallback */}
+              {(user.picture || "").trim() ? (
+                <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ duration: 0.6, delay: 0.6 }}
-                  src={user.picture}
-                  alt="Profile"
-                  className="w-20 h-20 rounded-full border-4 border-teal-200"
-                />
+                  className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-teal-200 overflow-hidden flex-shrink-0"
+                >
+                  {!imgError ? (
+                    <Image
+                      src={user.picture}
+                      alt="Profile"
+                      fill
+                      sizes="(min-width: 768px) 80px, 64px"
+                      className="object-cover"
+                      onError={() => setImgError(true)}
+                      priority={false}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-teal-100 flex items-center justify-center">
+                      <span className="text-teal-700 font-semibold select-none">
+                        {initials || "U"}
+                      </span>
+                    </div>
+                  )}
+                </motion.div>
+              ) : (
+                <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-teal-200 overflow-hidden flex-shrink-0">
+                  <div className="w-full h-full bg-teal-100 flex items-center justify-center">
+                    <span className="text-teal-700 font-semibold select-none">
+                      {initials || "U"}
+                    </span>
+                  </div>
+                </div>
               )}
               <div className="min-w-0">
                 <motion.h2

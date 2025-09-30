@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Calendar, Code, Clock, Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 import GoogleLoginButton from "./components/GoogleLoginButton";
+import Image from "next/image";
+import LinkedInFloatingButton from "./components/LinkedInFloatingButton"
 
 interface User {
   id: string;
@@ -14,8 +16,18 @@ interface User {
 }
 
 export default function Home() {
+  //{{ ... }}
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
+
+  const initials = (user?.name || "")
+    .trim()
+    .split(/\s+/)
+    .map((s: string) => s[0] || "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   useEffect(() => {
     checkUserStatus();
@@ -23,10 +35,11 @@ export default function Home() {
 
   const checkUserStatus = async () => {
     try {
-      const response = await fetch('http://localhost:5000/auth/me', {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+      const response = await fetch(`${backendUrl}/auth/me`, {
         credentials: 'include'
       });
-      
+
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
@@ -42,7 +55,8 @@ export default function Home() {
   };
 
   const handleLogout = () => {
-    fetch('http://localhost:5000/auth/logout', {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+    fetch(`${backendUrl}/auth/logout`, {
       method: 'POST',
       credentials: 'include'
     }).then(() => {
@@ -67,7 +81,7 @@ export default function Home() {
         >
           <Calendar className="w-10 h-10 text-white" />
         </motion.div>
-        
+
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -76,7 +90,7 @@ export default function Home() {
         >
           Contest Calendar
         </motion.h1>
-        
+
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -108,11 +122,11 @@ export default function Home() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block"
-                  >
+                >
                   <motion.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     className="p-3 bg-teal-600 rounded-xl"
-                    >
+                  >
                     <Code className="w-6 h-6 text-white" />
                   </motion.div>
                 </a>
@@ -131,13 +145,13 @@ export default function Home() {
                 </a>
               </div>
             </div>
-            
+
             <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6">
               Stay Ahead of Every Contest
             </h2>
-            
+
             <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 leading-relaxed">
-              This tool integrates upcoming programming contests directly into your Google Calendar 
+              This tool integrates upcoming programming contests directly into your Google Calendar
               with custom reminders, so you can focus on solving problems, not tracking dates.
             </p>
           </motion.div>
@@ -160,23 +174,45 @@ export default function Home() {
             <div className="space-y-4">
               <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-200 dark:border-slate-700">
                 <div className="flex items-center space-x-4 mb-4">
-                  {user.picture && (
-                    <img
-                      src={user.picture}
-                      alt="Profile"
-                      className="w-12 h-12 rounded-full border-2 border-gray-200 dark:border-slate-700"
-                    />
+                  {/* Profile picture with next/image and fallback */}
+                  {(user?.picture || "").trim() ? (
+                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-gray-200 dark:border-slate-700 overflow-hidden flex-shrink-0">
+                      {!imgError ? (
+                        <Image
+                          src={user!.picture}
+                          alt="Profile"
+                          fill
+                          sizes="(min-width: 768px) 80px, 64px"
+                          className="object-cover"
+                          onError={() => setImgError(true)}
+                          priority={false}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
+                          <span className="text-gray-700 dark:text-gray-200 font-semibold select-none">
+                            {initials || "U"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-gray-200 dark:border-slate-700 overflow-hidden flex-shrink-0">
+                      <div className="w-full h-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
+                        <span className="text-gray-700 dark:text-gray-200 font-semibold select-none">
+                          {initials || "U"}
+                        </span>
+                      </div>
+                    </div>
                   )}
                   <div className="text-left">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{user.name}</h3>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{user.email}</p>
                   </div>
                 </div>
-                <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                  user.subscribed 
-                    ? 'bg-teal-50 text-teal-700 border border-teal-200' 
+                <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${user.subscribed
+                    ? 'bg-teal-50 text-teal-700 border border-teal-200'
                     : 'bg-gray-100 text-gray-700 border border-gray-200'
-                }`}>
+                  }`}>
                   {user.subscribed ? 'Subscribed to notifications' : 'Not subscribed'}
                 </div>
               </div>
@@ -184,7 +220,10 @@ export default function Home() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => window.location.href = '/dashboard'}
+                  onClick={() => {
+                    const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+                    window.location.href = `${frontendUrl}/dashboard`;
+                  }}
                   className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
                 >
                   Go to Dashboard
@@ -195,7 +234,7 @@ export default function Home() {
           ) : (
             <GoogleLoginButton />
           )}
-          
+
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -206,7 +245,7 @@ export default function Home() {
           </motion.p>
         </div>
       </motion.section>
-
+      <LinkedInFloatingButton />
       {/* Footer */}
       <motion.footer
         initial={{ opacity: 0 }}

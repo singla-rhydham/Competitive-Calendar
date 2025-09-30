@@ -18,11 +18,13 @@ class ContestUpdater {
   private isRunning = false;
 
   constructor() {
-    // Run every 6 hours
-    cron.schedule('0 */6 * * *', () => {
-      console.log('Running scheduled contest update...');
-      this.updateContests();
-    });
+    // Run every 6 hours (disabled in production; will be triggered via GH Actions hitting a backend endpoint)
+    if (process.env.NODE_ENV !== 'production') {
+      cron.schedule('0 */6 * * *', () => {
+        console.log('Running scheduled contest update...');
+        this.updateContests();
+      });
+    }
   }
 
   async updateContests(): Promise<void> {
