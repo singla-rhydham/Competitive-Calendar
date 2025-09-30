@@ -107,7 +107,7 @@ export default function SubscribeButton({
               </h3>
               <p className="text-slate-700 dark:text-slate-300">
                 {isSubscribed
-                  ? "You'll receive notifications about upcoming coding contests"
+                  ? "You\u2019ll receive notifications about upcoming coding contests"
                   : "Get notified about upcoming coding contests and never miss an opportunity"}
               </p>
             </motion.div>
@@ -358,7 +358,7 @@ export default function SubscribeButton({
                   onClick={() => setShowUnsubscribeModal(false)}
                   className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white dark:border-slate-600 transform transition-transform transition-shadow duration-200 ease-out hover:shadow-lg hover:scale-[1.02]"
                 >
-                  Cancel (I don't want to unsubscribe)
+                  Cancel (I don&apos;t want to unsubscribe)
                 </button>
               </div>
             </div>

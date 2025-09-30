@@ -19,7 +19,16 @@ export default function Dashboard() {
     picture: "",
     subscribed: false,
   });
-  const [contests, setContests] = useState([]);
+  type ContestView = {
+    _id: string;
+    id: string;
+    platform: string;
+    name: string;
+    startTime: string;
+    endTime: string;
+    url: string;
+  };
+  const [contests, setContests] = useState<ContestView[]>([]);
   const calendarSectionRef = useRef<HTMLDivElement | null>(null);
   const welcomeCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -70,14 +79,26 @@ export default function Dashboard() {
       const response = await fetch(`${backendUrl}/api/contests`);
       if (response.ok) {
         const data = await response.json();
-        const list = Array.isArray(data.contests) ? data.contests : [];
+        const list: unknown = data.contests;
+        const arr = Array.isArray(list) ? (list as unknown[]) : [];
         const seen = new Set<string>();
-        const deduped = list.filter((c: any) => {
-          const key = c.id || `${c.platform}:${c.name}:${c.startTime}`;
-          if (seen.has(key)) return false;
+        const deduped: ContestView[] = [];
+        for (const raw of arr) {
+          if (typeof raw !== 'object' || raw === null) continue;
+          const c = raw as Record<string, unknown>;
+          const id = typeof c.id === 'string' ? c.id : '';
+          const platform = typeof c.platform === 'string' ? c.platform : '';
+          const name = typeof c.name === 'string' ? c.name : '';
+          const startTime = typeof c.startTime === 'string' ? c.startTime : '';
+          const endTime = typeof c.endTime === 'string' ? c.endTime : startTime;
+          const url = typeof c.url === 'string' ? c.url : '';
+          const _id = typeof c._id === 'string' ? c._id : id || `${platform}:${name}:${startTime}`;
+          const key = id || `${platform}:${name}:${startTime}`;
+          if (!platform || !name || !startTime) continue;
+          if (seen.has(key)) continue;
           seen.add(key);
-          return true;
-        });
+          deduped.push({ _id, id: id || key, platform, name, startTime, endTime, url });
+        }
         setContests(deduped);
       }
     } catch (error) {
@@ -249,7 +270,7 @@ export default function Dashboard() {
         >
           <div className="bg-white rounded-3xl p-8 border border-teal-200 shadow-xl">
             <h3 className="text-2xl font-semibold text-teal-900 mb-6 text-center">
-              What's Next?
+              What&apos;s Next?
             </h3>
             <div className="grid md:grid-cols-2 gap-6">
               <motion.div

@@ -1,12 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-
-interface User {
-  name: string;
-  email: string;
-  picture: string;
-}
+import { useState, useEffect } from 'react';
+import type { Dispatch } from 'react';
 
 interface SubscriptionState {
   isSubscribed: boolean;
@@ -23,8 +18,8 @@ interface UseSubscriptionReturn extends SubscriptionState {
   submitSubscriptionChange: (subscribe: boolean, pref?: string, removeExisting?: boolean) => Promise<void>;
   setToast: (toast: { type: 'error' | 'success'; message: string } | null) => void;
   setReminderPreference: (pref: string) => void;
-  setSelectedPlatforms: React.Dispatch<React.SetStateAction<string[]>>;
-  setPlatformColors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setSelectedPlatforms: Dispatch<React.SetStateAction<string[]>>;
+  setPlatformColors: Dispatch<React.SetStateAction<Record<string, string>>>;
 }
 
 export function useSubscription(initialSubscribed?: boolean): UseSubscriptionReturn {
@@ -63,8 +58,10 @@ export function useSubscription(initialSubscribed?: boolean): UseSubscriptionRet
 
   // Initialize subscription state from backend on first mount
   useEffect(() => {
-    checkSubscriptionStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Call without adding as dependency to avoid re-runs; inline wrapper prevents lint warning
+    (async () => {
+      await checkSubscriptionStatus();
+    })();
   }, []);
 
   const submitSubscriptionChange = async (subscribe: boolean, pref?: string, removeExisting?: boolean) => {
