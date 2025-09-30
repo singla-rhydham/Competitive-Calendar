@@ -1,0 +1,68 @@
+name: Scheduled Contest Update
+
+on:
+  schedule:
+    # Every 2 days at 00:00 UTC
+    - cron: "0 0 */2 * *"
+  workflow_dispatch:
+    inputs:
+      backend_base_url:
+        description: "Override backend base URL (e.g., https://your-render-service.onrender.com)"
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      backend_base_url:
+        description: "Backend base URL (e.g., https://your-render-service.onrender.com)"
+        required: false
+        type: string
+
+jobs:
+  ping-backend-update:
+    name: Trigger backend /api/update-contests
+    runs-on: ubuntu-latest
+    env:
+      # Prefer input (workflow_dispatch or workflow_call). Fallback to repo/org secret BACKEND_BASE_URL.
+      BACKEND_BASE_URL: ${{ inputs.backend_base_url || github.event.inputs.backend_base_url || secrets.BACKEND_BASE_URL }}
+    steps:
+      - name: Validate backend URL is provided
+        run: |
+          if [ -z "${BACKEND_BASE_URL}" ]; then
+            echo "BACKEND_BASE_URL is not set. Provide it via:\n - workflow input 'backend_base_url', or\n - repository/org secret 'BACKEND_BASE_URL'"
+            exit 1
+          fi
+          echo "Using backend base URL: ${BACKEND_BASE_URL}"
+
+      - name: Hit /api/update-contests with retries
+        run: |
+          set -e
+          TARGET_URL="${BACKEND_BASE_URL%/}/api/update-contests"
+          echo "Requesting: ${TARGET_URL}"
+
+          attempts=0
+          max_attempts=3
+          delay=10
+
+          while [ $attempts -lt $max_attempts ]; do
+            attempts=$((attempts+1))
+            echo "Attempt ${attempts}/${max_attempts}"
+            # -S show errors, -s silent, -m timeout seconds, --fail to non-zero on HTTP >=400
+            if curl -S -s -m 60 --fail -H "Accept: application/json" "$TARGET_URL"; then
+              echo "Success"
+              exit 0
+            else
+              status=$?
+              echo "Request failed with exit code ${status}." >&2
+              if [ $attempts -lt $max_attempts ]; then
+                echo "Retrying in ${delay}s..." >&2
+                sleep $delay
+              fi
+            fi
+          done
+
+          echo "All attempts failed for ${TARGET_URL}. Please check backend logs (Render) and network accessibility." >&2
+          exit 1
+
+      - name: Summarize result
+        if: ${{ success() }}
+        run: echo "Backend update job completed successfully."
