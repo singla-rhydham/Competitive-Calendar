@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Calendar, Mail, Bell } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import ContestCalendar from "../components/ContestCalendar";
 import SubscribeButton from "../components/SubscribeButton";
@@ -19,19 +19,11 @@ export default function Dashboard() {
     picture: "",
     subscribed: false,
   });
-  type ContestView = {
-    _id: string;
-    id: string;
-    platform: string;
-    name: string;
-    startTime: string;
-    endTime: string;
-    url: string;
-  };
-  const [contests, setContests] = useState<ContestView[]>([]);
+  const [contests, setContests] = useState([]);
   const calendarSectionRef = useRef<HTMLDivElement | null>(null);
   const welcomeCardRef = useRef<HTMLDivElement | null>(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const name = searchParams.get("name");
     const email = searchParams.get("email");
@@ -73,38 +65,26 @@ export default function Dashboard() {
     }
   };
 
-  const loadContests = async () => {
+  const loadContests = useCallback(async () => {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
     try {
       const response = await fetch(`${backendUrl}/api/contests`);
       if (response.ok) {
         const data = await response.json();
-        const list: unknown = data.contests;
-        const arr = Array.isArray(list) ? (list as unknown[]) : [];
+        const list = Array.isArray(data.contests) ? data.contests : [];
         const seen = new Set<string>();
-        const deduped: ContestView[] = [];
-        for (const raw of arr) {
-          if (typeof raw !== 'object' || raw === null) continue;
-          const c = raw as Record<string, unknown>;
-          const id = typeof c.id === 'string' ? c.id : '';
-          const platform = typeof c.platform === 'string' ? c.platform : '';
-          const name = typeof c.name === 'string' ? c.name : '';
-          const startTime = typeof c.startTime === 'string' ? c.startTime : '';
-          const endTime = typeof c.endTime === 'string' ? c.endTime : startTime;
-          const url = typeof c.url === 'string' ? c.url : '';
-          const _id = typeof c._id === 'string' ? c._id : id || `${platform}:${name}:${startTime}`;
-          const key = id || `${platform}:${name}:${startTime}`;
-          if (!platform || !name || !startTime) continue;
-          if (seen.has(key)) continue;
+        const deduped = list.filter((c: any) => {
+          const key = c.id || `${c.platform}:${c.name}:${c.startTime}`;
+          if (seen.has(key)) return false;
           seen.add(key);
-          deduped.push({ _id, id: id || key, platform, name, startTime, endTime, url });
-        }
+          return true;
+        });
         setContests(deduped);
       }
     } catch (error) {
       console.error("Error loading contests:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Disable auto-refresh in production builds
@@ -113,7 +93,7 @@ export default function Dashboard() {
       return () => clearInterval(interval);
     }
     return () => {};
-  }, []);
+  }, [loadContests]);
 
   // Track image load error to show fallback avatar
   const [imgError, setImgError] = useState(false);

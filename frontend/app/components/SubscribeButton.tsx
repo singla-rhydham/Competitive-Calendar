@@ -107,7 +107,7 @@ export default function SubscribeButton({
               </h3>
               <p className="text-slate-700 dark:text-slate-300">
                 {isSubscribed
-                  ? "You\u2019ll receive notifications about upcoming coding contests"
+                  ? "You'll receive notifications about upcoming coding contests"
                   : "Get notified about upcoming coding contests and never miss an opportunity"}
               </p>
             </motion.div>
