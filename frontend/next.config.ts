@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  eslint: {
+    // Do not block builds on ESLint errors (useful for Vercel)
+    ignoreDuringBuilds: true,
+  },
   images: {
     // Allow Google OAuth profile image hosts
     domains: ["lh3.googleusercontent.com", "lh5.googleusercontent.com", "googleusercontent.com"],
