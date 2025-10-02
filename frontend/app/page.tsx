@@ -15,7 +15,7 @@ interface User {
   subscribed: boolean;
 }
 
-export default function Home() {
+export default function Home() { 
   //{{ ... }}
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
