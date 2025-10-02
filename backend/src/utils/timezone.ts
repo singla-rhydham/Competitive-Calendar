@@ -1,32 +1,29 @@
-import { DateTime } from 'luxon';
+import { DateTime } from "luxon";
 
 /**
- * Parse CodeChef IST datetime string into a UTC Date
- * Example input: "08 Oct 2025  20:00:00"
+ * Parses a CodeChef IST datetime string and converts it to UTC Date object.
+ * CodeChef format: "08 Oct 2025  20:00:00" (note: double space between date and time)
+ * 
+ * @param dateStr - Date string from CodeChef API in IST timezone
+ * @returns UTC Date object ready for MongoDB storage
+ * 
+ * @example
+ * parseISTtoUTC("08 Oct 2025  20:00:00") 
+ * // Returns: Date object representing "2025-10-08T14:30:00.000Z" (UTC)
  */
 export function parseISTtoUTC(dateStr: string): Date {
-  if (!dateStr) return new Date(NaN);
-
-  // Clean up extra spaces just in case
-  const cleaned = dateStr.replace(/\s+/g, ' ').trim();
-
-  // Try strict format first (dd LLL yyyy HH:mm:ss)
-  let dt = DateTime.fromFormat(cleaned, "dd LLL yyyy HH:mm:ss", {
+  // Parse the CodeChef date format as IST (Asia/Kolkata) timezone
+  const istDateTime = DateTime.fromFormat(dateStr, "dd LLL yyyy  HH:mm:ss", {
     zone: "Asia/Kolkata",
-    locale: "en",
   });
 
-  // If still invalid, try ISO parse but force IST
-  if (!dt.isValid) {
-    dt = DateTime.fromISO(cleaned, { zone: "Asia/Kolkata" });
+  // Validate the parse was successful
+  if (!istDateTime.isValid) {
+    console.error(`Failed to parse CodeChef date: "${dateStr}". Error: ${istDateTime.invalidReason}`);
+    // Fallback: try standard JS Date parsing
+    return new Date(dateStr);
   }
 
-  // If still invalid, fallback to JS Date + IST zone
-  if (!dt.isValid) {
-    const js = new Date(cleaned);
-    dt = DateTime.fromJSDate(js).setZone("Asia/Kolkata");
-  }
-
-  // Always return UTC date
-  return dt.toUTC().toJSDate();
+  // Convert to UTC and return as JavaScript Date object
+  return istDateTime.toUTC().toJSDate();
 }
