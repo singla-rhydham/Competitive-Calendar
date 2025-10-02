@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';
 import subscriptionRoutes from './routes/subscription.js';
+import updateRoutes from './routes/update.js';
 import { initializePassport } from './config/passport.js';
 import contestUpdater from './services/contestUpdater.js';
 import googleCalendarService from './services/googleCalendar.js';
@@ -60,6 +61,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/contest-c
 // Routes
 app.use('/auth', authRoutes);
 app.use('/api', subscriptionRoutes);
+app.use('/api', updateRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
