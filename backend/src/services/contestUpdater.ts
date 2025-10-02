@@ -4,6 +4,7 @@ import Contest from '../models/Contest.js';
 import cron from 'node-cron';
 import googleCalendarService from './googleCalendar.js';
 import { DateTime } from 'luxon';
+import { parseISTtoUTC } from '../utils/timezone.js';
 
 interface ContestData {
   id: string;
@@ -224,14 +225,19 @@ class ContestUpdater {
       const response = await axios.get('https://www.codechef.com/api/list/contests/all');
       const contests = response.data.future_contests || [];
 
-      return contests.map((contest: any) => ({
-        id: `codechef_${contest.contest_code}`,
-        platform: 'CodeChef',
-        name: contest.contest_name,
-        startTime: new Date(contest.contest_start_date),
-        endTime: new Date(contest.contest_end_date),
-        url: `https://www.codechef.com/${contest.contest_code}`
-      }));
+      return contests.map((contest: any) => {
+        const startUTC = parseISTtoUTC(contest.contest_start_date);
+        const endUTC = parseISTtoUTC(contest.contest_end_date);
+
+        return {
+          id: `codechef_${contest.contest_code}`,
+          platform: 'CodeChef',
+          name: contest.contest_name,
+          startTime: startUTC,
+          endTime: endUTC,
+          url: `https://www.codechef.com/${contest.contest_code}`
+        } as ContestData;
+      });
     } catch (error) {
       console.error('Error fetching CodeChef contests:', error);
       return [];
