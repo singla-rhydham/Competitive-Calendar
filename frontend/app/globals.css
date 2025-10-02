@@ -12,15 +12,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
+  /* Force light theme with teal gradient background */
+  background: linear-gradient(135deg, #ecfeff 0%, #ccfbf1 35%, #99f6e4 70%, #5eead4 100%);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

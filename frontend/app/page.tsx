@@ -65,7 +65,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-gray-50">
       {/* Header Section */}
       <motion.header
         initial={{ opacity: 0, y: -50 }}
@@ -86,7 +86,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-4"
+          className="text-5xl md:text-7xl font-bold text-gray-900 mb-4"
         >
           Contest Calendar
         </motion.h1>
@@ -95,7 +95,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 font-light"
+          className="text-xl md:text-2xl text-gray-700 font-light"
         >
           Never miss a coding contest again.
         </motion.p>
@@ -108,7 +108,7 @@ export default function Home() {
         transition={{ duration: 0.8, delay: 0.8 }}
         className="max-w-4xl mx-auto px-6 mb-16"
       >
-        <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 md:p-12 border border-gray-200 dark:border-slate-700 shadow">
+        <div className="bg-white rounded-3xl p-8 md:p-12 border border-gray-200 shadow">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -146,11 +146,11 @@ export default function Home() {
               </div>
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6">
+            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 mb-6">
               Stay Ahead of Every Contest
             </h2>
 
-            <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-700 leading-relaxed">
               This tool integrates upcoming programming contests directly into your Google Calendar
               with custom reminders, so you can focus on solving problems, not tracking dates.
             </p>
@@ -172,11 +172,11 @@ export default function Home() {
             </div>
           ) : user ? (
             <div className="space-y-4">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-200 dark:border-slate-700">
+              <div className="bg-white rounded-2xl p-6 border border-gray-200">
                 <div className="flex items-center space-x-4 mb-4">
                   {/* Profile picture with next/image and fallback */}
                   {(user?.picture || "").trim() ? (
-                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-gray-200 dark:border-slate-700 overflow-hidden flex-shrink-0">
+                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-gray-200 overflow-hidden flex-shrink-0">
                       {!imgError ? (
                         <Image
                           src={user!.picture}
@@ -188,31 +188,31 @@ export default function Home() {
                           priority={false}
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
-                          <span className="text-gray-700 dark:text-gray-200 font-semibold select-none">
-                            {initials || "U"}
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                          <span className="text-gray-700 font-semibold select-none">
                           </span>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-gray-200 dark:border-slate-700 overflow-hidden flex-shrink-0">
-                      <div className="w-full h-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
-                        <span className="text-gray-700 dark:text-gray-200 font-semibold select-none">
+                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-gray-200 overflow-hidden flex-shrink-0">
+                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <span className="text-gray-700 font-semibold select-none">
                           {initials || "U"}
                         </span>
                       </div>
                     </div>
                   )}
-                  <div className="text-left">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{user.name}</h3>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{user.email}</p>
-                  </div>
+                <div className="text-left">
+                  <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
+                  <p className="text-sm text-gray-700">{user.email}</p>
                 </div>
-                <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${user.subscribed
+                </div>
+                <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                  user.subscribed
                     ? 'bg-teal-50 text-teal-700 border border-teal-200'
                     : 'bg-gray-100 text-gray-700 border border-gray-200'
-                  }`}>
+                }`}>
                   {user.subscribed ? 'Subscribed to notifications' : 'Not subscribed'}
                 </div>
               </div>
@@ -224,7 +224,7 @@ export default function Home() {
                     const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
                     window.location.href = `${frontendUrl}/dashboard`;
                   }}
-                  className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
+                  className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors dark:bg-teal-700 dark:text-teal-100 dark:hover:bg-teal-600"
                 >
                   Go to Dashboard
                 </motion.button>
@@ -235,16 +235,16 @@ export default function Home() {
             <GoogleLoginButton />
           )}
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1.4 }}
-            className="text-sm text-gray-600 dark:text-gray-400 mt-4"
-          >
-            {user ? 'Manage your contest notifications' : 'Grant access to sync contests into your Google Calendar'}
-          </motion.p>
-        </div>
-      </motion.section>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 1.4 }}
+              className="text-sm text-gray-600 dark:text-gray-300 mt-4"
+            >
+              {user ? 'Manage your contest notifications' : 'Grant access to sync contests into your Google Calendar'}
+            </motion.p>
+          </div>
+        </motion.section>
       <LinkedInFloatingButton />
       {/* Footer */}
       <motion.footer
@@ -253,7 +253,7 @@ export default function Home() {
         transition={{ duration: 0.8, delay: 1.6 }}
         className="text-center pb-8"
       >
-        <div className="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-400">
+        <div className="flex items-center justify-center space-x-2 text-gray-600">
           <span>Built with</span>
           <motion.div
             animate={{ scale: [1, 1.2, 1] }}
