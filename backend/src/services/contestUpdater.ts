@@ -4,7 +4,6 @@ import Contest from '../models/Contest.js';
 import cron from 'node-cron';
 import googleCalendarService from './googleCalendar.js';
 import { DateTime } from 'luxon';
-import { parseISTtoUTC } from '../utils/timezone.js';
 
 interface ContestData {
   id: string;
@@ -226,15 +225,18 @@ class ContestUpdater {
       const contests = response.data.future_contests || [];
   
       return contests.map((contest: any) => {
-        const startUTC = parseISTtoUTC(contest.contest_start_date);
-        const endUTC = parseISTtoUTC(contest.contest_end_date);
+        // Use the ISO fields which include timezone offset (+05:30 for IST)
+        // e.g., "2025-10-08T20:00:00+05:30" -> automatically converted to UTC by JS Date
+        // This eliminates manual IST parsing and ensures correct UTC storage in MongoDB
+        const startTime = new Date(contest.contest_start_date_iso);
+        const endTime = new Date(contest.contest_end_date_iso);
   
         return {
           id: `codechef_${contest.contest_code}`,
           platform: "CodeChef",
           name: contest.contest_name,
-          startTime: startUTC,
-          endTime: endUTC,
+          startTime,
+          endTime,
           url: `https://www.codechef.com/${contest.contest_code}`,
         } as ContestData;
       });
