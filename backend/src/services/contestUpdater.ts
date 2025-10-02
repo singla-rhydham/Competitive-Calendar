@@ -4,7 +4,7 @@ import Contest from '../models/Contest.js';
 import cron from 'node-cron';
 import googleCalendarService from './googleCalendar.js';
 import { DateTime } from 'luxon';
-import { parseCodeChefIST } from '../utils/timezone.js';
+import { parseISTtoUTC } from '../utils/timezone.js';
 
 interface ContestData {
   id: string;
@@ -226,8 +226,8 @@ class ContestUpdater {
       const contests = response.data.future_contests || [];
   
       return contests.map((contest: any) => {
-        const startUTC = parseCodeChefIST(contest.contest_start_date);
-        const endUTC = parseCodeChefIST(contest.contest_end_date);
+        const startUTC = parseISTtoUTC(contest.contest_start_date);
+        const endUTC = parseISTtoUTC(contest.contest_end_date);
   
         return {
           id: `codechef_${contest.contest_code}`,
