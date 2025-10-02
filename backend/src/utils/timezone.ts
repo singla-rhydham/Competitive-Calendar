@@ -1,32 +1,20 @@
 import { DateTime } from "luxon";
 
-// Parse a CodeChef IST datetime string into a UTC Date
-export function parseISTtoUTC(dateStr: string): Date {
-  // Normalize: "2025-10-25 17:30:00" -> "2025-10-25T17:30:00"
-  let normalized = dateStr.replace(" ", "T");
+/**
+ * CodeChef publishes contest times in IST (Asia/Kolkata).
+ * This function ensures we parse them as IST and then convert to UTC.
+ */
+export function parseCodeChefIST(dateStr: string): Date {
+  // Force zone Asia/Kolkata
+  const dt = DateTime.fromFormat(dateStr.trim(), "yyyy-LL-dd HH:mm:ss", {
+    zone: "Asia/Kolkata",
+  });
 
-  const attempts = [
-    () => DateTime.fromISO(normalized, { zone: "Asia/Kolkata" }),
-    () => DateTime.fromFormat(dateStr, "yyyy-LL-dd HH:mm:ss", { zone: "Asia/Kolkata" }),
-    () => DateTime.fromRFC2822(dateStr, { zone: "Asia/Kolkata" }),
-    () => {
-      const js = new Date(dateStr);
-      return DateTime.fromJSDate(js).setZone("Asia/Kolkata");
-    },
-  ];
-
-  for (const make of attempts) {
-    try {
-      const dt = make();
-      if (dt.isValid) {
-        return dt.toUTC().toJSDate();
-      }
-    } catch {
-      // try next
-    }
+  if (dt.isValid) {
+    return dt.toUTC().toJSDate();
   }
 
-  // fallback
-  const fallback = new Date(dateStr);
-  return new Date(fallback.getTime());
+  // fallback: JS parse + set IST
+  const js = new Date(dateStr);
+  return DateTime.fromJSDate(js, { zone: "Asia/Kolkata" }).toUTC().toJSDate();
 }

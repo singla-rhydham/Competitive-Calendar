@@ -4,7 +4,7 @@ import Contest from '../models/Contest.js';
 import cron from 'node-cron';
 import googleCalendarService from './googleCalendar.js';
 import { DateTime } from 'luxon';
-import { parseISTtoUTC } from '../utils/timezone.js';
+import { parseCodeChefIST } from '../utils/timezone.js';
 
 interface ContestData {
   id: string;
@@ -222,27 +222,28 @@ class ContestUpdater {
 
   private async fetchCodeChefContests(): Promise<ContestData[]> {
     try {
-      const response = await axios.get('https://www.codechef.com/api/list/contests/all');
+      const response = await axios.get("https://www.codechef.com/api/list/contests/all");
       const contests = response.data.future_contests || [];
-
+  
       return contests.map((contest: any) => {
-        const startUTC = parseISTtoUTC(contest.contest_start_date);
-        const endUTC = parseISTtoUTC(contest.contest_end_date);
-
+        const startUTC = parseCodeChefIST(contest.contest_start_date);
+        const endUTC = parseCodeChefIST(contest.contest_end_date);
+  
         return {
           id: `codechef_${contest.contest_code}`,
-          platform: 'CodeChef',
+          platform: "CodeChef",
           name: contest.contest_name,
           startTime: startUTC,
           endTime: endUTC,
-          url: `https://www.codechef.com/${contest.contest_code}`
+          url: `https://www.codechef.com/${contest.contest_code}`,
         } as ContestData;
       });
     } catch (error) {
-      console.error('Error fetching CodeChef contests:', error);
+      console.error("Error fetching CodeChef contests:", error);
       return [];
     }
   }
+  
 
   private async saveContests(contests: ContestData[]): Promise<void> {
     for (const contestData of contests) {
