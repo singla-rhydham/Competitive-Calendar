@@ -1,17 +1,18 @@
-import { DateTime } from 'luxon';
+import { DateTime } from "luxon";
 
 // Parse a CodeChef IST datetime string into a UTC Date
-// Tries multiple common formats defensively and assumes Asia/Kolkata when no offset is present.
 export function parseISTtoUTC(dateStr: string): Date {
+  // Normalize: "2025-10-25 17:30:00" -> "2025-10-25T17:30:00"
+  let normalized = dateStr.replace(" ", "T");
+
   const attempts = [
-    () => DateTime.fromISO(dateStr, { zone: 'Asia/Kolkata' }),
-    () => DateTime.fromFormat(dateStr, 'yyyy-LL-dd HH:mm:ss', { zone: 'Asia/Kolkata' }),
-    () => DateTime.fromRFC2822(dateStr, { zone: 'Asia/Kolkata' }),
+    () => DateTime.fromISO(normalized, { zone: "Asia/Kolkata" }),
+    () => DateTime.fromFormat(dateStr, "yyyy-LL-dd HH:mm:ss", { zone: "Asia/Kolkata" }),
+    () => DateTime.fromRFC2822(dateStr, { zone: "Asia/Kolkata" }),
     () => {
-      // Last resort: let JS parse, then force zone to IST
       const js = new Date(dateStr);
-      return DateTime.fromJSDate(js).setZone('Asia/Kolkata');
-    }
+      return DateTime.fromJSDate(js).setZone("Asia/Kolkata");
+    },
   ];
 
   for (const make of attempts) {
@@ -25,7 +26,7 @@ export function parseISTtoUTC(dateStr: string): Date {
     }
   }
 
-  // If all parsing fails, fall back to JS Date -> UTC as-is (may already include offset)
+  // fallback
   const fallback = new Date(dateStr);
   return new Date(fallback.getTime());
 }
